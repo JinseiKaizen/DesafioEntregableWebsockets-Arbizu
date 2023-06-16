@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Real Time Products</title>
+</head>
+
+<body>
+    <h1>Real Time Products</h1>
+
+    <input type="text" id="product-name-input" placeholder="Nombre del producto">
+    <button id="add-product-button">Agregar Producto</button> 
+
+    <ul id="product-list">
+        {{#each products}}
+        <li>
+            <span>{{this.title}}</span>
+        </li>
+        {{/each}}
+    </ul>
+
+
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        console.log(socket)
+
+        socket.on('initial products', (products) => {
+            renderProducts(products);
+        });
+
+        function renderProducts(products) {
+            const productList = document.getElementById('product-list');
+            productList.innerHTML = '';
+
+            products.forEach((product) => {
+                const listItem = document.createElement('li');
+                const productSpan = document.createElement('span');
+                productSpan.textContent = product.title;
+                listItem.appendChild(productSpan);
+
+                const deleteButton = document.createElement('button'); 
+                deleteButton.textContent = 'Eliminar'; 
+                deleteButton.addEventListener('click', () => {
+                    deleteProduct(product.id); 
+                });
+                listItem.appendChild(deleteButton);
+
+                listItem.setAttribute('data-product-id', product.id);
+
+                productList.appendChild(listItem);
+            });
+        }
+
+        function addProduct(newProduct) {
+            const productList = document.getElementById('product-list');
+            const listItem = document.createElement('li');
+            const productSpan = document.createElement('span');
+            productSpan.textContent = newProduct.title;
+            listItem.appendChild(productSpan);
+
+            const deleteButton = createDeleteButton(newProduct.id);
+            listItem.appendChild(deleteButton);
+
+            productList.appendChild(listItem);
+
+            productList.appendChild(listItem);
+        }
+
+        function createDeleteButton(productId) {
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Eliminar';
+            deleteButton.addEventListener('click', () => {
+                const listItem = deleteButton.parentNode;
+                listItem.remove(); 
+                socket.emit('delete product', productId)
+            });
+
+            
+            return deleteButton;
+        }
+
+        function deleteProduct(productId) {
+            const productList = document.getElementById('product-list');
+            const listItem = document.querySelector(`li[data-product-id="${productId}"]`);
+
+            if (listItem) {
+                productList.removeChild(listItem);
+            }
+
+            socket.emit('delete product', productId)
+        }
+
+
+        const addProductButton = document.getElementById('add-product-button');
+        addProductButton.addEventListener('click', () => {
+            const productNameInput = document.getElementById('product-name-input');
+            const productName = productNameInput.value;
+            if (productName.trim() !== '') {
+                const newProduct = { id: Date.now(), title: productName };
+                addProduct(newProduct);
+                socket.emit('new product', newProduct); 
+                productNameInput.value = '';
+            }
+        });
+    </script>
+</body>
+
+</html>
